@@ -4,7 +4,7 @@ except ImportError:
 	from collections.abc import Mapping
 import json
 import warnings
-
+import collections
 import numpy as np
 from scipy.optimize import root, leastsq
 
@@ -47,20 +47,47 @@ def _validate_state_dict(dict_):
     """
     if not isinstance(dict_, dict):
         raise ValueError('states must be a dict object')
+    
+    # Create a new dictionary to avoid modifying during iteration
+    new_dict = {}
     for k, v in dict_.items():
-        dict_.pop(k, None)
         try:
-            dict_[str(k)] = _validate_typed_list(v, int)
+            new_dict[str(k)] = _validate_typed_list(v, int)
         except ValueError:
             raise ValueError('Values in state dicts must be integer lists!')
-    vlen = len(list(dict_.values())[0])
-    for k, v in dict_.items():
-        if len(v) == vlen:
-            continue
-        raise ValueError(
-                'Bad list length for state %s (%d != %d)'%(k, len(v), vlen)
-              )
-    return dict_
+    
+    # Check that all lists have the same length
+    if new_dict:
+        vlen = len(list(new_dict.values())[0])
+        for k, v in new_dict.items():
+            if len(v) == vlen:
+                continue
+            raise ValueError(
+                    'Bad list length for state %s (%d != %d)'%(k, len(v), vlen)
+                  )
+    
+    return new_dict
+
+# def _validate_state_dict(dict_):
+#     """Check that the argument is a dictionary where all keys are strings and
+#     all arguments are equal length lists of integers.
+#     """
+#     if not isinstance(dict_, dict):
+#         raise ValueError('states must be a dict object')
+#     for k, v in dict_.items():
+#         dict_.pop(k, None)
+#         try:
+#             dict_[str(k)] = _validate_typed_list(v, int)
+#         except ValueError:
+#             raise ValueError('Values in state dicts must be integer lists!')
+#     vlen = len(list(dict_.values())[0])
+#     for k, v in dict_.items():
+#         if len(v) == vlen:
+#             continue
+#         raise ValueError(
+#                 'Bad list length for state %s (%d != %d)'%(k, len(v), vlen)
+#               )
+#     return dict_
 
 def _validate_float(value):
     try:
